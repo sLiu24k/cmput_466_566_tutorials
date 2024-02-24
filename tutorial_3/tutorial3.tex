@@ -1,0 +1,260 @@
+\documentclass{article}
+\newcommand{\hwnumber}{1}
+
+\newcommand{\norm}[1]{\| #1 \|}
+\newcommand{\abs}[1]{| #1 |}
+
+\usepackage{fullpage,amsthm,amsmath,amssymb}
+\usepackage{algorithm,algorithmic}
+\usepackage{mathtools}
+\usepackage{bbm,bm}
+\usepackage{enumerate}
+\usepackage{xspace}
+\usepackage[textsize=tiny,
+]{todonotes}
+\newcommand{\todot}[1]{\todo[color=blue!20!white]{T: #1}}
+\newcommand{\todoc}[1]{\todo[color=orange!20!white]{Cs: #1}}
+\usepackage[colorlinks,citecolor=blue,urlcolor=blue,linkcolor=black]{hyperref}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{proposition}{Proposition}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator{\sign}{sign}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Lap}{Lap}
+\DeclareMathOperator*{\Exp}{\mathbf{E}}
+\DeclareMathOperator*{\1}{\mathbbm{1}}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\E}{\mathbb E}
+\newcommand{\V}{\mathbb V}
+\renewcommand{\P}[1]{P\left\{ #1 \right\}}
+\newcommand{\Prob}[1]{\mathbb{P}( #1 )}
+\newcommand{\real}{\mathbb{R}}
+\renewcommand{\b}[1]{\mathbf{#1}}
+\newcommand{\EE}[1]{\E[#1]}
+\newcommand{\bfone}{\1}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cN}{\mathcal{N}}
+\usepackage[capitalize]{cleveref}
+\usepackage{xifthen}
+
+\newcounter{DocPoints} 
+\newcounter{QuestionPoints} 
+\newcommand{\points}[1]{	\par\mbox{}\par\noindent\hfill {\bf #1 points}	\addtocounter{DocPoints}{#1}
+	\addtocounter{QuestionPoints}{#1}
+}
+\newcommand{\tpoints}[1]{        	\ifthenelse{\isempty{#1}}	{	}	{		\addtocounter{DocPoints}{#1}
+		\addtocounter{QuestionPoints}{#1}
+	}													 	\par\mbox{}\par\noindent\hfill {Total: \bf \arabic{QuestionPoints}\xspace points}\par\mbox{}\par\hrule\hrule
+	\setcounter{QuestionPoints}{0}
+}
+\newcommand{\tpoint}[1]{
+	\tpoints{#1}
+}
+
+\theoremstyle{definition}
+\newtheorem{question}{Question}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem*{remark*}{Remark}
+\newtheorem{solution}{Solution}
+\newtheorem*{solution*}{Solution}
+
+\newcommand{\hint}{\noindent \textbf{Hint}:\xspace}
+
+\usepackage{hyperref}
+
+\newcommand{\epssub}{\delta}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\sA}{\mathcal{A}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\cU}{\mathcal{U}}
+\newcommand{\cV}{\mathcal{V}}
+\newcommand{\cI}{\mathcal{I}}
+\newcommand{\bSig}{\mathbf{\Sigma}}
+
+
+
+
+\begin{document}
+\begin{center}
+  {\Large \textbf{CMPUT 466/566: Machine Learning, Winter 2024\\ Tutorial 3}}
+  \end{center}
+  \begin{center}
+    Shuai Liu
+  \end{center}
+  \section{Multivariate Calculus}
+  \begin{definition}[partial derivative]
+    For a function $f:\R^d\to \R$, and standard Euclidean basis $\{e_i\}_{i=1}^d$, if the following limit of function exists at $a$, we say $f$ has partial derivative w.r.t. $x_i$ at $a$
+    \begin{equation*}
+        \lim_{h\to 0}\frac{f(a+he_i)-f(a)}{h}.
+    \end{equation*}
+    We denote the above limit by $\frac{\partial f(a)}{\partial x_i}$ or $\frac{\partial}{\partial x_i}f(a)$.
+  \end{definition}
+  \begin{remark}
+    In this course, it is ok to treat everything else as a constant and only take derivative w.r.t. the target variable.
+  \end{remark}
+  \begin{example}
+    Let $a\in \R^d$ and $f(x)=a^\top x$. Then \[\frac{\partial}{\partial x_i}f(x)=\frac{\partial}{\partial}(\sum_{j=1}^d a_jx_j)=a_i.\]
+  \end{example}
+  \begin{definition}[gradient]
+    For a function $f:\R^d\to\R$, assume the partial derivatives of $f$ all exist in a neighborhood of $x$ and are also continuous at $x$. Then $f$ is differentiable and its gradient satisfies
+    \begin{equation*}
+        \nabla_x f(x)=\left(\frac{\partial f}{\partial x}\right)^\top =\begin{bmatrix}
+            \frac{\partial f}{\partial x_1}\\
+            \frac{\partial f}{\partial x_2}\\
+            \vdots\\
+            \frac{\partial f}{\partial x_d}
+        \end{bmatrix}
+    \end{equation*}
+  \end{definition}
+  \begin{example}
+    Let $a\in \R^d$ and $f(x)=a^\top x$. Then $\nabla_x f(x) = \begin{bmatrix}
+        \frac{\partial }{\partial x_1}\left(\sum_{i=1}^d a_ix_i\right)\\
+        \frac{\partial f}{\partial x_2}\left(\sum_{i=1}^d a_ix_i\right)\\
+        \vdots\\
+        \frac{\partial f}{\partial x_d}\left(\sum_{i=1}^d a_ix_i\right)
+    \end{bmatrix}$=$\begin{bmatrix}
+        a_1\\
+        a_2\\
+        \vdots\\
+        a_d\end{bmatrix}$
+  \end{example}
+  \begin{definition}[Jacobian]
+    For a differentiable function $f\in \R^n\to\R^m$, let the output of function be $(f_1(x),...,f_m(x))^\top$ the Jacobian of the function is defined as 
+    \begin{equation*}
+        J_f(x)=\frac{\partial f}{\partial x}=\begin{bmatrix}
+            \frac{\partial f_1}{\partial x}\\
+            \frac{\partial f_2}{\partial x}\\
+            \vdots\\
+            \frac{\partial f_m}{\partial x}
+        \end{bmatrix}
+    \end{equation*}
+  \end{definition}
+  \begin{proposition}[Chain rule]
+    Let $f:\R^n\to\R^m$ and $g:\R^m\to\R^p$ are both differentiable with Jacobians $J_g(f(x))$ and $J_f(x)$. Then the derivative 
+    \begin{equation*}
+        \frac{\partial g\circ f}{\partial x}=\sum_{j=1}^m \frac{\partial g(f_1(x),...,f_m(x))}{\partial f_j(x)}\frac{\partial f_j(x)}{\partial x}.
+    \end{equation*}
+  \end{proposition}
+  \begin{proposition}
+    Let $f:\R^n\to\R^m$ and $g:\R^m\to\R^p$ are both differentiable with Jacobians $J_g(f(x))$ and $J_f(x)$. Then $g\circ f$ has Jacobian $J_{g\circ f}(x)=J_g(f(x))J_f(x)$.
+  \end{proposition}
+  \begin{proof}
+    By definition of function composition, $g\circ f$ is a function that maps from $\R^n\to\R^p$. As usual, we denote the output of $g\circ f$ as $((g\circ f)_1(x),...,(g\circ f)_p(x))^\top$. Then the $j$-th element in the $i$-th row of the Jacobian of $J_{g\circ f}$ is that
+    \begin{align*}
+        [J_{g\circ f}(x)]_{ik}&=\frac{\partial (g\circ f)_i}{\partial x_k}\\
+        &=\frac{\partial g_i(f(x))}{\partial x_k}\\
+        &=\frac{\partial g_i(f_1(x),...,f_m(x))}{\partial x_k}\\
+        &=\sum_{j=1}^m \frac{\partial g_i(f_1(x),...,f_m(x))}{\partial f_j(x)}\frac{\partial f_j(x)}{\partial x_k}\tag{Chain rule}\\
+        &=\sum_{j=1}^m [J_g(f(x))]_{ij}[J_f(x)]_{jk}\\
+        &=[J_g(f(x))J_f(x)]_{ik}
+    \end{align*}
+  \end{proof}
+  \begin{definition}[Hessian]
+    Let $f:\R^d\to\R$ be twice differentiable, the Hessian is defined to be
+    \begin{equation*}
+        \nabla^2 f(x)=\begin{bmatrix}
+            \frac{\partial^2 f}{\partial x_1^2}&\dotsc &\frac{\partial^2 f}{\partial x_1\partial x_d}\\
+            \vdots&\ddots& \vdots\\
+            \frac{\partial^2 f}{\partial x_d\partial x_1}&\dotsc&\frac{\partial^2 f}{\partial x_d^2}
+        \end{bmatrix}.
+    \end{equation*}
+    If $f$ is twice continuously differentiable, then $\nabla^2f(x)$ is symmetric.
+  \end{definition}
+  \section{Convex Analysis}
+  \begin{definition}[Convex set]
+    A set $V\subseteq \R^d$ is convex if for all $x,y\in V$ and $\gamma \in (0,1)$, we have that $\gamma x + (1-\gamma) y \in V$.
+  \end{definition}
+  \begin{remark}
+    See \href{https://en.wikipedia.org/wiki/Convex_set}{Wikipedia on convex sets} for examples of convex sets.
+  \end{remark}
+  \begin{definition}[Convex function]
+    A function $f:V\subseteq \R^d\to\R$ is convex if $V$ is a convex set and for all $x,y\in V$, $f(\gamma x+ (1-\gamma) y)\le \gamma f(x)+(1-\gamma)f(y)$.
+  \end{definition}
+
+  \color{red}For definitions of neighborhood, open set, interior and some simple examples, please refer to the appendix.\color{black}
+  
+  \begin{proposition}[First order condition]
+    Assume $f:\cV\subset \R^d\to \R$ is differentiable in the interior of $V$, which we denote by $V^\circ$, then $f$ is convex if and only if for all $x\in V, y\in V^\circ$
+    \begin{equation*}
+      f(y)\le f(x)+\nabla f(x)^\top (y-x)
+    \end{equation*}
+  \end{proposition}
+  \begin{remark}
+    The reason why we introduce the interior is because $f$ cannot be differentiable on the boundary. Think about if a function $g:[a,b]\to\R$ can be differentiable on the endpoint ($a$ or $b$).
+  \end{remark}
+  \begin{proposition}[Second order condition]
+    Assume $f:V\subset \R^d\to \R$ is twice-continuously-differentiable in the interior of $V$, which we denote by $V^\circ$, then $f$ is convex if and only if for all $x\in V$
+    \begin{equation*}
+      \nabla^2f(x)\succeq 0
+    \end{equation*}
+  \end{proposition}
+  \begin{definition}[Local minima]
+    For a function $f:V\subseteq \R^d \to \R$, $x^*\in V$ is a local minima of $f$ if there exists a neighborhood $\cU\subseteq V$ of $x^*$ such that for all $y\in \cU$, $f(y)\ge f(x^*)$.
+  \end{definition}
+  \begin{definition}[Global minima]
+    For a function $f:V\subseteq \R^d \to \R$, $x^*\in V$ is a global minima of $f$ if for all $y\in V$, $f(y)\ge f(x^*)$.
+  \end{definition}
+  \begin{proposition}
+    For a convex function $f:V\subseteq \R^d \to \R$. Any local minima of $f$ is a global minima.
+  \end{proposition}
+  \begin{proposition}[Condition 1 for minima]
+    For a function $f:V\subseteq \R^d \to \R$ be differentiable on $V^\circ$. Then if $x^*$ is a local minima of $f$ then 
+    \begin{equation*}
+      \nabla f(x^*)=0.
+    \end{equation*}
+    Furthermore, if $f$ is convex, then $x^*$ is a global minima of $f$ if and only if 
+    \begin{equation*}
+      \nabla f(x^*)=0.
+    \end{equation*}
+  \end{proposition}
+  \begin{proposition}[Condition 2 for minima]
+    For a function $f:V\subseteq \R^d \to \R$ be twice-continuously-differentiable on $V^\circ$. If $\nabla^2 f(x)\succeq 0$ for $x$ in a neighborhood of $x^*$. Then $x^*$ is the local minima of $f$ if and only if 
+    \begin{equation*}
+      \nabla f(x^*)=0.
+    \end{equation*}
+  \end{proposition}
+  \section{Appendix}
+  Let $\|\cdot\|$ be a norm on $\R^d$ and consider the space $(\R^d, \|\cdot\|)$. 
+  \begin{definition}[Neighborhood]
+    For a point $v\in \R^d$, $\cU$ is called a neighborhood of $v$ if $v\in \cU$ and there exists $r>0$ such that the open ball centered at $v$ with radius being $r$ subsets $\cU$. 
+  \[B(r):=\{x:\|x-v\|<r\}\subseteq \cU\]
+  \end{definition}
+  \begin{remark}
+    For example, an open ball centered at $v$ is a neighborhood of $v$. This is a generalization of open interval in $\R$. Think about $\R$, the neighborhood of $x\in \R$ is an open interval that contains $\R$.
+  \end{remark}
+  \begin{definition}[Open set]
+    A set $\cV\subseteq \R^d$ is an open set if for all $v\in \cV$, there exists a neighborhood $\cU_v$ of $v$ such that $\cU_v\subseteq \cV$.
+  \end{definition}
+  \begin{remark}
+    An open ball centered at $v$ is an open set. Think about $\R$, an union of open intervals, $\cup_{i=1}^\infty \cI_i$ where $\cI_i$ are open intervals, is an open set. In fact, all open sets in $\R$ can be written as the union of open intervals.
+  \end{remark}
+  \begin{definition}[Interior]
+    For a set $\cV\subseteq\R^d$, the interior $\cV^\circ$ is the set of points that have a neighborhood that subsets $\cV$, that is,
+    \[\cV^\circ = \{x\in \cV: \exists 
+    \;\cU_x \text{ neighborhood of }x \;\; s.t. \;\;\cU_x\subseteq\cV\}.\]
+  \end{definition} 
+  \begin{remark}
+    Picture whatever closed shape in your mind, for example, a heart. Then exclude the boundaries, every point inside forms the interior of that shape. For a closed ball, \[K(r):=\{x:\|x-v\|\le r\},\]
+    the interior is $B(r)$. Think about $\R$, the interior of a closed interval is just the open interval version of it (which is the largest open interval subsets it) and the interior of $\N$ is empty.
+  \end{remark}
+
+  \begin{definition}[Boundary]
+    For a set $\cV\subseteq\R^d$, the boundary of $\cV$, which we denote by $\partial \cV$, is $\partial \cV := \cV\backslash \cV^\circ$.
+  \end{definition}
+
+  
+\end{document}

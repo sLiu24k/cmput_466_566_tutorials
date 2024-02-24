@@ -1,0 +1,415 @@
+\documentclass{article}
+\newcommand{\hwnumber}{1}
+
+\newcommand{\norm}[1]{\| #1 \|}
+\newcommand{\abs}[1]{| #1 |}
+
+\usepackage{fullpage,amsthm,amsmath,amssymb}
+\usepackage{algorithm,algorithmic}
+\usepackage{mathtools}
+\usepackage{bbm,bm}
+\usepackage{enumerate}
+\usepackage{xspace}
+\usepackage[textsize=tiny,
+]{todonotes}
+\newcommand{\todot}[1]{\todo[color=blue!20!white]{T: #1}}
+\newcommand{\todoc}[1]{\todo[color=orange!20!white]{Cs: #1}}
+\usepackage[colorlinks,citecolor=blue,urlcolor=blue,linkcolor=black]{hyperref}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{proposition}{Proposition}
+
+\newcommand{\R}{\mathbb{R}}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator{\sign}{sign}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Lap}{Lap}
+\DeclareMathOperator*{\Exp}{\mathbf{E}}
+\DeclareMathOperator*{\1}{\mathbbm{1}}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\E}{\mathbb E}
+\newcommand{\V}{\mathbb V}
+\renewcommand{\P}[1]{P\left\{ #1 \right\}}
+\newcommand{\Prob}[1]{\mathbb{P}( #1 )}
+\newcommand{\real}{\mathbb{R}}
+\renewcommand{\b}[1]{\mathbf{#1}}
+\newcommand{\EE}[1]{\E[#1]}
+\newcommand{\bfone}{\1}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cN}{\mathcal{N}}
+\usepackage[capitalize]{cleveref}
+\usepackage{xifthen}
+
+\newcounter{DocPoints} 
+\newcounter{QuestionPoints} 
+\newcommand{\points}[1]{	\par\mbox{}\par\noindent\hfill {\bf #1 points}	\addtocounter{DocPoints}{#1}
+	\addtocounter{QuestionPoints}{#1}
+}
+\newcommand{\tpoints}[1]{        	\ifthenelse{\isempty{#1}}	{	}	{		\addtocounter{DocPoints}{#1}
+		\addtocounter{QuestionPoints}{#1}
+	}													 	\par\mbox{}\par\noindent\hfill {Total: \bf \arabic{QuestionPoints}\xspace points}\par\mbox{}\par\hrule\hrule
+	\setcounter{QuestionPoints}{0}
+}
+\newcommand{\tpoint}[1]{
+	\tpoints{#1}
+}
+
+\theoremstyle{definition}
+\newtheorem{question}{Question}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem*{remark*}{Remark}
+\newtheorem{solution}{Solution}
+\newtheorem*{solution*}{Solution}
+
+\newcommand{\hint}{\noindent \textbf{Hint}:\xspace}
+
+\usepackage{hyperref}
+
+\newcommand{\epssub}{\delta}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\sA}{\mathcal{A}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\bSig}{\mathbf{\Sigma}}
+
+\begin{document}
+\begin{center}
+  {\Large \textbf{CMPUT 466/566: Machine Learning, Winter 2024\\ Tutorial 2}}
+  \end{center}
+  \begin{center}
+    Shuai Liu
+  \end{center}
+  \section{Likelihood function}
+  We are in the setting of statistical inference which is also called learning in computer science. It studies the question of, given samples from a distribution:
+  \[X_1,...,X_n \sim F,\]
+  how do we infer $F$? Here $X_1,...,X_n$ are your data and $F$ is your true underlying distribution. Up to this point in the course, we are under the setting of \textbf{parametric inference}, that is, we are assuming the pdf (or pmf) of the data distribution takes the form of $f(x;\theta)$. Formally, we assume that there exists a parameter set $\Theta$ such that
+  \[F(x)\in \{f(x;\theta):\theta\in \Theta\}\]
+  \begin{example}
+    If we assume $F$ is a Gaussian distribution, then $\Theta=\mathbb R\times \R^+$ and $F\in \mathcal P:=\{\cN(\mu,\sigma^2):\mu\in \R, \sigma\in \R^+\}=\{\cN(\mu,\sigma^2):(\mu, \sigma)\in \Theta\}$.
+  \end{example}
+  You may notice that there are two “inputs” to the function $f$: $x$ and $\theta$. $\theta$ is the \textbf{parameter} which uniquely identifies a single distribution if we restrict that all distributions under consideration takes the form of $f(x;\theta)$. In the above example, given a mean $\mu_1\in \R$ and a standard deviation $\sigma_1\in \R^+$, we uniquely identify a Gaussian distribution with the tuple $(\mu_1,\sigma_1)$. Mathematically, there exists a bijection between $\Theta=\R\times\R^+$ and $\mathcal P$. 
+
+  Once we identify the distribution with the parameters, for each value that $x$ can take, $f(x;\theta)$ assigns a probability density / probability mass. So here $x$ is the argument, or \textbf{input}, of $f(\cdot; \theta)$. In order to distinguish between the input and the parameter, in the notation, we usually separate them with a semi-colon. 
+
+  Back to the parametric inference setting. The parameters are known to the true underlying distribution, but not known to us, computer scientists. We would like to infer (or estimate) the true parameters, which uniquely identifies a distribution, given samples from this distribution. A common method is Maximum Likelihood Estimation (MLE), as you have seen in the class. Now we introduce the definition of likelihood function.
+  \begin{definition}
+    Let $X_1,...,X_n$ be i.i.d. with pdf/pmf $f(x;\theta)$ and $x_i$ is the sample of $X_i$ for all $i=1,2,...,n$. The likelihood function is defined by 
+    \begin{equation*}
+      \mathcal L_n(\theta) = \prod_{i=1}^{n}f(x_i;\theta),
+    \end{equation*}
+    and the log-likelihood is defined by
+    \begin{equation*}
+      \ell_n(\theta) = \mathcal L_n(\theta).
+    \end{equation*}
+  \end{definition}
+  \begin{remark}
+    Parameter v.s. Input: for pdf/pmf, $f(x;\theta)$, it is a function of $x$. Eg. In the standard normal distribution $\mathcal N(0,1)$, we fix mean to be $0$ and variance to be $1$. Then as we vary $x\in \mathbb R$, a probability density $f(x) = \frac{1}{\sqrt{2\pi}}(-\frac{x^2}{2})$ is assigned. In this case, the parameter is $(\mu,\sigma)=(0,1)$ and the input is $x$.
+  \end{remark}
+  \begin{remark}
+    The likelihood function is nothing but joint pdf/pmf of $X_1,...,X_n$. However, it is viewed as a function of $\theta$!
+  \end{remark}
+  \begin{example}[MLE of Bernoulli distribution]
+    Let $X_1,...,X_n$ be i.i.d. from $\mathrm{Ber}(p)$, i.e., $f(x;p)=p^x(1-p)^{(1-x)}$. Let $S=\sum_{i=1}^n x_i$. Note that $S\le n$. Then the likelihood function
+    \begin{align*}
+      \mathcal L_n(p) &= \prod_{i=1}^{n}p^{x_i}(1-p)^{1-x_i}\\
+      &= p^{\sum_{i=1}^n x_i}(1-p)^{\sum_{i=1}^n (1-x_i)}\\
+      &=p^S(1-p)^{n-S}
+      \ell_n(\theta) = S\log p + (n-S)\log(1-p).
+    \end{align*}
+    With some calculation, we can see that $\ell''_n(p) = -(\frac{S}{p^2}+\frac{(n-S)}{(1-p)^2})\le 0$, which implies that $\ell_n(p)$ is concave. Taking the derivative and setting it to be $0$ we have that
+    \begin{align*}
+      \frac{d}{dp}\ell_n(\theta)\Big |_{p=\hat p}&=0\\
+      \frac{S}{\hat p}-\frac{n-S}{1-\hat p}&=0\\
+      \hat p&=\frac{S}{n}
+    \end{align*}
+  \end{example}
+  \section{Random Vectors and Covariance Matrices}
+  \begin{definition}
+    A vector $\mathbf X=(X_1,...,X_n)^\top$ whose components are scalar-valued random variables is called a random vector, or a multivariate random variable, and its distribution is called a multivariate distribution. The expectation of $\mathbf X$ is $\mathbb E[\mathbf X] = (\mathbb E[X_1],...,\mathbb E[X_n])^\top\in \mathbb R^d$.
+  \end{definition}
+  \begin{definition}[Covariance between random variables]
+    The covariance between two random variables $X,Y$ is defined to be \[\mathrm{Cov}(X,Y)=\mathbb E[(X-\mathbb E[X])(Y-\mathbb E[Y])] = \mathbb E[XY] - \mathbb E[X]\mathbb E[Y]\] (\textbf{exercise}: prove the last equality).
+  \end{definition}
+  \begin{remark}
+    Covariance intuitively reflects how $Y$ changes when $X$ is increased: if $Y$ increases, then the covariance is positive, otherwise negative. Note that by definition $\mathrm{Cov}(X,X)=\mathrm{Var}(X)$ and $\mathrm{Cov}(X,Y)=\mathrm{Cov}(Y,X)$ for all random variables $X,Y$.
+  \end{remark}
+  \begin{proposition}
+    For two random variables $X,Y$ (not necessarily independent), it follows that\[\mathrm{Var}(X+Y)=\mathrm{Var}(X)+\mathrm{Var}(Y)+2\mathrm{Cov}(X,Y).\]
+  \end{proposition}
+  \begin{proof}
+    Exercise.
+  \end{proof}
+  \begin{proposition}
+    The covariance matrix operator $\mathrm{Cov}(\cdot,\cdot)$ is bilinear, that is, for random variable $A,B,C$,
+    \[\mathrm{Cov}(A,B+C)=\mathrm{Cov}(A,B)+\mathrm{Cov}(A,C).\]
+  \end{proposition}
+  \begin{remark}
+    If $X$ is independent from $Y$, then $\mathrm{Cov}(X,Y)=0$ but the converse is not true. Consider $X,Y$ such that 
+    \begin{equation*}
+      \mathbb P(X=-1) = \mathbb P(X=1)=1/2, Y=X^2.
+    \end{equation*}
+  \end{remark}
+  Here is a simple intuition about covariance matrix. Recall that variance characterizes how dispersed a distribution is. When we move from univariate random variable to multivariate random vectors, the covariance between different components of the random vector comes to play. Let $\mathbf X=(X_1,...,X_n)^\top$. The dispersion of $\mathbf X$ can be affected by all of them and we understand how they affect the dispersion pairwisely by covariances.
+  \begin{definition}[Covariance matrix]
+    The covariance matrix is defined to be $\mathbf\Sigma=\mathbb E[(\mathbf X-\mathbb E[\mathbf X])(\mathbf X-\mathbb E[\mathbf X])^\top]$ or equivalently, $\mathbf\Sigma_{ij}=\mathrm{Cov}(X_i,X_j) =\mathrm{Cov}(X_j,X_i)=\mathbf\Sigma_{ji}$. Hence $\mathbf\Sigma$ is a symmetric matrix
+  \end{definition}
+  \begin{proposition}\label{prop:psd_cov}
+    For all random vector $\mathbf X\in \mathbb R^d$, the covariance matrix $\mathbf \Sigma$ of $\mathbf X$ is a positive semi-definite matrix, that is, for all $a\in \mathbb R^d$, $a^\top \mathbf \Sigma a\ge 0$.
+  \end{proposition}
+  \begin{proof}
+    For all $a\in \mathbb R^d$, we have that 
+    \begin{align*}
+      a^\top \mathbf\Sigma a &= a^\top \mathbb E\left[(\mathbf X-\mathbb E[\mathbf X])(\mathbf X-\mathbb E[\mathbf X])^\top\right] a\\
+      &=\mathbb E\left[a^\top (\mathbf X-\mathbb E[\mathbf X])(\mathbf X-\mathbb E[\mathbf X])^\top a\right] \tag{Linearity of expectation}\\
+      &=\mathbb E\left[((\mathbf X-\mathbb E[\mathbf X])^\top a)^2\right]\ge 0
+    \end{align*}
+  \end{proof}
+  \begin{corollary}
+    For a $0$-mean random vector $\mathbf X\in \R^d$, its covariance matrix $\bSig$ is not positive-definite if and only if there exists a non-zero vector $a\in \mathbb R^d$ such that $a^\top \b X = 0$, that is, there exists an index $k\in \{1,2,...,d\}$ such that $X_k = \sum_{i\neq k}\frac{a_i}{a_k} X_i$. In this case, we call $X_1,...,X_k$ are linearly dependent. 
+  \end{corollary}
+  \begin{proof}
+    Since $\E [\b{X}]=0$, the covariance matrix $\bSig$ equals to $\E[\b X\b X^\top]$. By \cref{prop:psd_cov}, $\bSig$ is PSD. It is not positive-definite if and only if there exists a non-zero vector $a\in \R^d$ such that $a^\top \bSig a=0$, that is, 
+    \begin{align*}
+      \bSig \text{ not positive-definite}&\Longleftrightarrow \exists a\neq 0 \in \R^d, \text{ such that }a^\top \Sigma a=0 \\
+      &\Longleftrightarrow a^\top \mathbb E[XX^\top] a=0\\
+      &\Longleftrightarrow \E[(a^\top X)^2]=0\\
+      &\Longleftrightarrow a^\top X=0
+    \end{align*}
+    The second part of the statement follows by noting that $a\neq 0$.
+  \end{proof}
+  \begin{remark}
+    We sometimes call a general real random vector $\b Y$ to be degenerated if the random variables $Y_1-\E[Y_1],...,Y_k-\E[Y_k]$ are linearly dependent.
+  \end{remark}
+  \begin{corollary}
+    For a random vector $\mathbf X\in \R^d$ and its covariance matrix $\bSig$, then $\det(\bSig) >0 $ if and only if $Y$ is not degenerated.
+  \end{corollary}
+  \begin{proof}
+    Exercise.
+  \end{proof}
+  \begin{proposition}\label{prop:cov_linear_transform}
+    For a random vector $\b Z\in \R^d$ with mean $\mu$, covariance matrix $\bSig$ and a matrix $\b A\in \R^{k\times d}$, the vector $\b A\b Z$ has mean $\b A\mu$ and covariance matrix $\b A\bSig\b A^\top$
+  \end{proposition}
+  \begin{proof}
+    \begin{align*}
+      \mu_{\b A \b Z} &= \E[\b A\b Z] = \b A\E[\b Z]=\b A\mu\\
+      \bSig_{\b A\b Z}&=\E[(\b A\b Z-\E[\b A\b Z])(\b A\b Z-\E[\b A\b Z])^\top]\\
+      &=\E[\b A(\b Z-\E[\b Z])(\b Z-\E[\b Z])^\top\b A^\top]\\
+      &=\b A\E[(\b Z-\E[\b Z])(\b Z-\E[\b Z])^\top]\b A^\top\\
+      &=\b A \bSig \b A^\top
+    \end{align*}
+  \end{proof}
+  \section{Univariate Gaussian}
+  There are lots of nice properties of Gaussians. We first show two useful properties for independent Gaussians. 
+  \begin{proposition}
+    Let $X\sim \cN(\mu, \sigma^2)$ be a Gaussian random variable, then $X+c \sim \cN(\mu+c, \sigma^2)$.
+  \end{proposition}
+  \begin{proof}
+    Let $Y=X+c$ and $\Phi_X(x) = \Prob{X\le x}$, $f_X(x)$ be the cdf and pdf of $X$ respectively. Then $\Phi_Y$ the cumulative distribution function of $Y$ is
+    \begin{align*}
+      \Phi_Y(y) = \Prob{Y \le y} &= \Prob{X+c\le y}\\
+      &=\Prob{X\le y-c}\\
+      &=\Phi_X(y-c)
+    \end{align*}
+    Recall $f_Y(\cdot)$, the pdf  of $Y$, is the derivative of $\Phi_Y(\cdot)$, that is, 
+    \begin{align*}
+      f_Y(y)=\frac{d}{dy}\Phi_Y(y) &= \frac{d}{dy} \Phi_X(y-c)\\
+      &= f_X(y-c)\\
+      &=\frac{1}{\sigma\sqrt{2\pi}}\exp(-(y-c-\mu)^2 / (2\sigma^{2}))
+    \end{align*}
+  \end{proof}
+  \begin{proposition}\label{prop:mul_gaussian}
+    Let $X\sim \cN(\mu, \sigma^2)$ be a Gaussian random variable, then$cX$ is a Gaussian with mean $\mathcal N(c\mu, c^2\sigma^2)$ for $c\neq 0$.
+  \end{proposition}
+  \begin{proof}
+    Similar to the last proof. Exercise.
+  \end{proof}
+  \begin{proposition}\label{prop:sum_gaussian}
+    Let $X\sim \cN(\mu_1, \sigma_1^2),Y\sim \cN(\mu_2, \sigma_2^2)$ be independent, then $X+Y\sim \cN(\mu_1+\mu_2, \sigma_1^2+\sigma_2^2)$.
+  \end{proposition}
+  \begin{proof}
+    For simplicity of calculation, we show the above proposition with $\mu_1=\mu_2=0, \sigma_1=\sigma_2=1$. The general case is left as an exercise. As before, we denote $\Phi_X(x)$, $\Phi_Y(y)$, $f_X(x)$, $f_Y(y)$ as the cdfs and pdfs of $X$ and $Y$ respectively. The following trick is often referred as the convolution trick. Let $Z=X+Y$ and the cdf $\Phi_Z(z)$ of $Z$ can be written as 
+    \begin{align*}
+      \Prob{Z\le z} = \Prob{X+Y\le z}&=\Prob{Y\le z-X}\\
+      &=\int_{-\infty}^\infty \int_{-\infty }^{z-x}f_{XY}(x,y)dydx\\
+      &=\int_{-\infty}^\infty \int_{-\infty }^{z-x}f_{X}(x)f_{Y}(y)dydx\\
+      &=\int_{-\infty}^\infty f_{X}(x)\left( \int_{-\infty }^{z-x}f_{Y}(y)dy\right)dx\\
+      &=\int_{-\infty}^\infty f_{X}(x) \Phi_Y(z-x)dx
+    \end{align*}
+    Taking the derivative of $\Phi(z)$ and using Lebniz's rule to interchange the order of derivative and integral, we obtain that
+    \begin{align*}
+      f_Z(z)=\frac{d}{dz}\Prob{Z\le z}&=\frac{\partial }{\partial z}\int_{-\infty}^\infty f_{X}(x) \Phi_Y(z-x)dx\\
+      &=\int_{-\infty}^\infty f_{X}(x) \left(\frac{\partial }{\partial z}\Phi_Y(z-x)\right)dx\\
+      &=\int_{-\infty}^\infty f_{X}(x) f_Y(z-x)dx
+    \end{align*}
+    Plug in the expression of $f_X(x), f_Y(y)$, 
+    \begin{align*}
+      f_Z(z)&=\frac{1}{{2\pi}}\int_{-\infty}^\infty  \exp\left(-\frac{x^2}{2}\right)\cdot \exp\left(-\frac{(z-x)^2}{2}\right)dx\\
+      &=\frac{1}{2\pi}\int_{-\infty}^\infty \exp\left(-\frac{x^2+(z-x)^2}{2}\right)\\
+      &=\frac{1}{2\pi}\int_{-\infty}^\infty \exp\left(-\frac{2x^2-2zx+z^2}{2}\right)dx\\
+      &=\frac{1}{2\pi}\int_{-\infty}^\infty \exp\left(-\frac{2x^2-2zx+z^2}{2}\right)dx\\
+      &=\frac{1}{2\pi}\int_{-\infty}^\infty \exp\left(-{x^2-zx-\frac{1}{4}z^2}-\frac{1}{4}z^2\right)dx\\
+      &=\frac{1}{2\pi}\exp\left(-\frac{1}{4}z^2\right)\int_{-\infty}^\infty -{x^2-zx-\frac{1}{4}z^2}dx\\
+      &=\frac{1}{2\pi}\exp\left(-\frac{1}{4}z^2\right)\int_{-\infty}^\infty -{\left(x-\frac{1}{2}z\right)^2}dx\\
+      &=\frac{1}{2\pi}\exp\left(-\frac{1}{4}z^2\right)\cdot\sqrt{
+        \frac12}\cdot\sqrt{2\pi}
+    \end{align*}
+    where the last equality follows by the pdf of $\cN(0.5z,0.5)$ integrates to 1, that is, $\int_{\R}\frac{1}{\sqrt{1/2}\sqrt{2\pi}}\exp(-(x-0.5z)^2)dx=1$.
+  \end{proof}
+  \textbf{Exercise.} Prove  \cref{prop:sum_gaussian} for the general case.
+  \begin{corollary}
+    Let $X_1,...,X_n$ be $n$ independent Gaussian with mean $\mu_1,...\mu_n$ and variance $\sigma_1^2,...,\sigma_n^2$. Then $\sum_{i=1}^n c_iX_i\sim \cN(\sum_{i=1}^n c_i\mu_i, \sum_{i=1}^n c_i^2\sigma_i^2)$ for constants $c_1,...,c_n$ such that $\prod_{i=1}^n c_i\neq 0$.
+  \end{corollary}
+  \begin{proof}
+    Without loss of generality, we assume $c_1,...,c_n\neq 0$. Then for each $i$, $c_iX_i$ is a Gaussian $\cN(c_i\mu_i, c_i^2\mu_i^2)$ by \cref{prop:mul_gaussian}. Applying \cref{prop:sum_gaussian} for  $n-1$ times we obtain the stated result.
+  \end{proof}
+  We now move to the multivariate case. A random vector is defined to be multivariate Gaussian if it can be written as an affine transformation of a random vector with each component being i.i.d. standard Gaussian. We formalize this definition below.
+  \section{Multivariate Gaussian}
+  \begin{definition}[Multivariate Gaussian]
+    Let $U_i\sim \cN(0,1)$ be i.i.d. standard Gaussian random variables. A random vector $\b Z\in \mathbb R^k$ is a jointly Gaussian (JG) random vector with distribution being multivariate Gaussian (MG), if there exists a matrix $\b R\in \R^{k\times l}$ and a vector $\b\mu \in \R^l$ such that $\b Z=\b R\b U+\b \mu$ where $\b U=(U_1,...,U_l)^\top$.
+  \end{definition}
+  There are multiple equivalent definitions of MG that may be useful in different cases.
+  \begin{theorem}[Equivalent definitions of JG]
+    Let $\b Z=(Z_1,...,Z_k)^\top$ be a random vector. The followings are equivalent (TFAE):
+    \begin{enumerate}
+      \item $\b Z$ is JG 
+      \item For every non-zero $a=(a_1,...,a_k)^\top\in \R^k$, the random variable $\sum_{i=1}^k a_iZ_i$ is Gaussian.
+      \item (Non-degenerate case only) The pdf of $\b Z$ is \[f_{\b Z}(\b z)=\frac{1}{\sqrt{\det(\bSig)}}\frac{1}{(\sqrt{2\pi})^k}\exp\left(-\frac{1}{2}(\b z-\b \mu)^\top\bSig^{-1}(\b z-\b \mu)\right)\]
+      where $\bSig=\E[(\b Z-\b \mu)(\b Z-\b \mu)^\top]=\b E[(\b R\b U)(\b R\b U)^\top]=\b R\E[\b U\b U^\top]\b R^\top=\b RI\b R^\top=\b R\b R^\top$
+    \end{enumerate}
+  \end{theorem}
+  \textbf{Exercise.} Show that for all positive definite matrices $M$, there exists a distribution such that $M$ is the covariance matrix of it.
+
+  Let's take a glance at some well-known properties of MG. Let $\b Z\sim \cN(\mu_{\b z}, \bSig_{\b z})$ be a JG random vector.
+
+  \textbf{Exercise.} Show that the linear transformation $\b A\b Z$ is also JG where $\b A$ has the dimensions scaled appropriately with the dimension of $\b Z$.
+  \[\b A\b Z\sim \cN(\b A\mu_{\b z}, \b A\b \bSig_{\b z} A^\top)\]
+  \textit{Hint:(Use definition of JG and \cref{prop:cov_linear_transform}.)}
+  
+  \begin{proposition}
+    Assume the partition of a JG $\b Z=[\b X, \b Y]^\top$ whose distribution is given by $\b Z\sim \cN(\mu_{\b z}, \bSig_{\b z})$ and 
+    \begin{equation*}
+      \mu_{\b z}=[\mu_{\b X},\mu_{\b Y}]^\top, \bSig_{\b Z}=\begin{bmatrix}
+      \bSig_{\b X\b X} & \bSig_{\b X\b Y}\\
+      \bSig_{\b Y\b X} & \bSig_{\b Y\b Y}
+      \end{bmatrix}
+      .
+    \end{equation*}
+    Then the conditional distribution of $\b X$ given $\b Y$ is JG 
+    \[\b X|\b Y\sim \cN(\mu_{\b X}+\bSig_{\b X\b Y}\bSig_{\b Y\b Y}^{-1}(\b Y-\mu_{\b Y}), \bSig_{\b X\b X}-\bSig_{\b Y\b Y}^{-1}\bSig_{\b Y\b X})\] 
+    and the marginal distribution of $\b X$ is also JG.
+  \end{proposition}
+  \textbf{Exercise.} Show that the conditional distribution of $\b Y$ given $\b X$ is JG and the marginal distribution of $\b Y$ is also JG. \textit{(Hint: Use definition of JG.)}
+  \begin{remark}
+    The converse is not necessarily true! If $\b X,\b Y$ are individually Gaussian, then we know that we can write $\b X,\b Y$ as linear transformations of i.i.d Gaussians $\b X=\b R_1 \b U_1$ and $\b Y = \b R_2 \b U_2$. But whether $[\b U_1,\b U_2]^\top$ are i.i.d random variables remain unclear. 
+    % For example, if $\b U_1=\b U_2=\b U$ and $\b R_1=2\b R_2=2\b I$, then $\b Y=\b U$, $\b X=2\b U$ there exists only $1$ representation of $[\b X,\b Y]^\top$, which is 
+    % \begin{equation*}
+    %   [\b X,\b Y]^\top=
+    %   \begin{bmatrix}
+    %     \b I & \b 0\\
+    %     \b 0 & 2\b I
+    %     \end{bmatrix}
+    %     [\b U,\b U]^\top
+    % \end{equation*}
+    % where $[\b U,\b U]^\top$ are not independent Gaussians. The representation is unique is because the linear transformation matrix is invertible.
+  \end{remark}
+
+  \begin{corollary}
+    If $\b X$ and $\b Y$ as described above are uncorrelated, that is $\bSig_{\b X\b Y}=\bSig_{\b Y\b X}=\b 0$, then they are independent.
+  \end{corollary}
+  \begin{proof}
+    The conditional distribution of $\b X\vert \b Y$ can be written as
+    \[\b X|\b Y\sim \cN(\mu_{\b X}+0\cdot \bSig_{\b Y\b Y}^{-1}(\b Y-\mu_{\b Y}), \bSig_{\b X\b X}-\bSig_{\b Y\b Y}^{-1} \cdot 0)=\cN(\mu_{\b X}, \bSig_{\b X\b X})\]
+    from the pdf of MG, we can get that \[f_{\b X\vert \b Y}(\b x\vert\b y)f_{\b Y}(\b y)=f_{\b Z}(\b x,\b y)=f_{\b X}(\b x)f_{\b Y}(\b y)\](check it!). 
+  \end{proof}
+  \begin{remark}
+    Recall that in general, uncorrelated does not imply independent!
+  \end{remark}
+  
+  \begin{proposition}
+    Let $X,Y$ be univariate Gaussian, then $[X,Y]^\top$ is JG if and only if the marginal distribution of $X$, the marginal distribution of $Y$, $X|Y=y$ and $Y|X=x$ are Gaussian.
+  \end{proposition}
+  \begin{example}
+    Let $X_1$ and $X_2$ be i.i.d. standard Gaussians.  Let $U$ be random variable uniformly distributed on $\{-1,1\}$, independent of $X_1,X_2$. The we have $[Z_1,Z_2]^\top$ are JG for $Z_1=X_1,Z_2=X_1+X_2$ using the above proposition. We verify that they are marginally Gaussian by \cref{prop:sum_gaussian}: $Z_1\sim \cN(0,1)$, $Z_2\sim \cN(0,2)$ but they are not independent. Since conditioned on $Z_1=z$, we have that $(Z_2\vert Z_1=z)=X_2+z\sim\cN(z,1)$. 
+    
+    Let $\sigma_{11}=\mathrm{Cov}(Z_1,Z_1),\sigma_{12}=\mathrm{Cov}(Z_1,Z_2),\sigma_{22}=\mathrm{Cov}(Z_2,Z_2)$. With little calculation, we can get that the covariance matrix is
+    \begin{equation*}
+      \begin{bmatrix}
+        \sigma_{11} & \sigma_{12}\\
+        \sigma_{12} & \sigma_{22}
+      \end{bmatrix}=
+      \begin{bmatrix}
+        1 & 1\\
+        1 & 2
+      \end{bmatrix}
+    \end{equation*}
+    
+    For $Z_1\vert Z_2=z$, we show it by the equality
+    \begin{equation*}
+      \begin{bmatrix}
+        a & b\\
+        b & c
+        \end{bmatrix}
+        ^{-1}=
+        \begin{bmatrix}
+          1 & 0\\
+          -\frac{b}{c} & 1
+          \end{bmatrix}
+          \begin{bmatrix}
+            \left(a-\frac{b^2}{c}\right)^{-1} & 0\\
+            0& \frac{1}{c}
+            \end{bmatrix}
+            \begin{bmatrix}
+              1 & -\frac{b}{c}\\
+              0& 1
+              \end{bmatrix}
+    \end{equation*}
+    We can now plug it into our density function of $f_{Z_1,Z_2}(z_1,z_2)$, the trick here is that as long as we know that we are dealing with Gaussians, we don't have to care too much about the constants because they are going to eventually work out themselves.
+    \end{example}
+    \begin{align*}
+      f_{Z_1,Z_2}(z_1,z_2)&\propto \exp\left(-\frac{1}{2}
+      \begin{bmatrix}
+        z_1 & z_2
+        \end{bmatrix}
+      \begin{bmatrix}
+        1 & 0\\
+        -\frac{\sigma_{12}}{\sigma_{22}} & 1
+        \end{bmatrix}
+        \begin{bmatrix}
+          \left(\sigma_{11}-\frac{\sigma_{12}^2}{\sigma_{22}}\right)^{-1} & 0\\
+          0& \frac{1}{\sigma_{22}}
+          \end{bmatrix}
+          \begin{bmatrix}
+            1 & -\frac{\sigma_{12}}{\sigma_{22}}\\
+            0& 1
+            \end{bmatrix}
+            \begin{bmatrix}
+              z_1 \\
+              z_2\\
+            \end{bmatrix}\right)\\
+            &\propto \exp\left(-\frac{1}{2}\begin{bmatrix}
+              z_1-\frac{\sigma_{12}}{\sigma_{22}}z_2 & z_2
+              \end{bmatrix}
+              \begin{bmatrix}
+                \left(\sigma_{11}-\frac{\sigma_{12}^2}{\sigma_{22}}\right)^{-1} & 0\\
+                0& \frac{1}{\sigma_{22}}
+                \end{bmatrix}
+                \begin{bmatrix}
+                  z_1-\frac{\sigma_{12}}{\sigma_{22}}z_2 \\
+                  z_2\\
+                \end{bmatrix}\right)\\
+                &\propto \exp\left(-\frac{1}{2}\frac{(z_1-\frac{\sigma_{12}}{\sigma_{22}}z_2)^2}{\sigma_{11}-\frac{\sigma_{12}^2}{\sigma_{22}}}\right)\exp\left(-\frac{1}{2\sigma_{22}}z_2^2\right)
+    \end{align*}
+    Marginalizing out $Z_1$, we have that
+    \begin{equation*}
+      f_{Z_2}\propto \exp\left(-\frac{1}{2\sigma_{22}}z_2^2\right)
+    \end{equation*}
+    Then conditional on $Z_2=z_2$, we can see that $Z_1\vert Z_2=z_2\sim\cN(\frac{\sigma_{12}}{\sigma_{22}}z_2,\sigma_{11}-\frac{\sigma_{12}^2}{\sigma_{22}})=\cN(\frac{1}{2}z_2,\frac{1}{2})$
+\end{document}
